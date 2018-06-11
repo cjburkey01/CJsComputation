@@ -1,5 +1,6 @@
 package com.cjburkey.cjscomputation.packet;
 
+import com.cjburkey.cjscomputation.Debug;
 import com.cjburkey.cjscomputation.computer.ComputerScreen;
 import com.cjburkey.cjscomputation.gui.GuiComputer;
 import io.netty.buffer.ByteBuf;
@@ -43,16 +44,16 @@ public class PacketGetScreenCharactersToClient implements IMessage {
     
     public void toBytes(ByteBuf buf) {
         for (int x = 0; x < characters.length; x ++) {
-            for (int y = 0; y < characters.length; y ++) {
+            for (int y = 0; y < characters[0].length; y ++) {
                 buf.writeChar(characters[x][y]);
             }
         }
         
         for (int x = 0; x < colors.length; x ++) {
             for (int y = 0; y < colors[0].length; y ++) {
-                for (int c = 0; c < colors[0][0].length; c ++) {
-                    buf.writeByte(colors[x][y][c]);
-                }
+                buf.writeByte(colors[x][y][0]);
+                buf.writeByte(colors[x][y][1]);
+                buf.writeByte(colors[x][y][2]);
             }
         }
     }

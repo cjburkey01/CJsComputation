@@ -37,7 +37,7 @@ public class TileEntityComputer extends TileEntity implements ITickable {
     }
     
     public void setComputer(ComputerPlaced computer) {
-        this.id = computer.id;
+        this.id = computer.getId();
         this.computer = computer;
         markDirty();
     }

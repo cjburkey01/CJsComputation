@@ -25,9 +25,9 @@ public class ComputerPlaced extends ComputerCore {
         this.blockPos = new BlockPos(blockPos);
     }
     
-    // Loaded with NBT
-    public ComputerPlaced(short id) {
-        super (id);
+    // To be loaded with NBT
+    public ComputerPlaced() {
+        super ();
     }
     
     public void saveData(NBTTagCompound nbt) {

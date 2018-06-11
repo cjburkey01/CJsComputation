@@ -48,7 +48,6 @@ public class ComputerHandler extends WorldSavedData {
                 if (computerTag == null || !computerTag.hasKey("id") || !computerTag.hasKey("type")) {
                     continue;
                 }
-                short id = computerTag.getShort("id");
                 String type = computerTag.getString("type");
                 try {
                     Class<?> typeClass = Class.forName(type);
@@ -56,19 +55,18 @@ public class ComputerHandler extends WorldSavedData {
                         throw new ClassNotFoundException("Class not found: " + type);
                     }
                     Class<? extends ComputerCore> instantiatedClass = (Class<? extends ComputerCore>) typeClass;
-                    Constructor<? extends ComputerCore> constructor = instantiatedClass.getConstructor(short.class);
-                    ComputerCore computer = constructor.newInstance(id);
+                    ComputerCore computer = instantiatedClass.newInstance();
                     if (computer == null) {
-                        Debug.err("Failed to create computer {} of type {}", id, type);
+                        Debug.err("Failed to create computer of type {}", type);
                         continue;
                     }
-                    if (!computer.loadData(computerTag)) {
-                        Debug.err("Computer failed to load data {} of type {}", type, computer.id);
+                    if (!computer._load(computerTag)) {
+                        Debug.err("Computer failed to load data {} of type {}", type, computer.getId());
                         continue;
                     }
-                    computers.put(computer.id, new ComputerWrapper(computer));
+                    computers.put(computer.getId(), new ComputerWrapper(computer));
                 } catch (Exception e) {
-                    Debug.warn("Failed to load computer {}, the type {} could not be found or an error occurred creating an instance: {}", id, type, e.getMessage());
+                    Debug.warn("Failed to load computer of the type {} could not be found or an error occurred creating an instance: {}", type, e.getMessage());
                     e.printStackTrace();
                     continue;
                 }
@@ -88,9 +86,8 @@ public class ComputerHandler extends WorldSavedData {
         NBTTagList list = new NBTTagList();
         for (ComputerWrapper computer : computers.values()) {
             NBTTagCompound computerTag = new NBTTagCompound();
-            computerTag.setShort("id", computer.computer.id);
             computerTag.setString("type", computer.type.getName());
-            computer.computer.saveData(computerTag);
+            computer.computer._save(computerTag);
             list.appendTag(computerTag);
         }
         nbt.setTag("computers", list);
@@ -100,11 +97,11 @@ public class ComputerHandler extends WorldSavedData {
     }
     
     public <T extends ComputerCore> void addComputer(T computer) {
-        if (!computers.containsKey(computer.id)) {
-            computers.put(computer.id, new ComputerWrapper(computer));
-            lastId = computer.id;
+        if (!computers.containsKey(computer.getId())) {
+            computers.put(computer.getId(), new ComputerWrapper(computer));
+            lastId = computer.getId();
             markDirty();
-            Debug.log("Created computer {}", computer.id);
+            Debug.log("Created computer {}", computer.getId());
         }
     }
     

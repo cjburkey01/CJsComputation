@@ -4,25 +4,17 @@ import java.nio.charset.Charset;
 import com.cjburkey.cjscomputation.Debug;
 import com.cjburkey.cjscomputation.computer.ComputerCore;
 import com.cjburkey.cjscomputation.computer.ComputerHandler;
-import com.cjburkey.cjscomputation.computer.ComputerWrapper;
 import io.netty.buffer.ByteBuf;
-import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler;
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
 
-public class PacketGetDrawTypeToServer implements IMessage {
-    
-    private short computer;
-    private short typeLength;
-    private String type;
+public class PacketGetDrawTypeToServer extends PacketComputerToServer {
     
     public PacketGetDrawTypeToServer() {
     }
     
     public PacketGetDrawTypeToServer(short computer, Class<? extends ComputerCore> type) {
-        this.computer = computer;
-        this.type = type.getName();
-        typeLength = (short) this.type.length();
+        super(computer, type);
     }
     
     public void fromBytes(ByteBuf buf) {
@@ -39,6 +31,7 @@ public class PacketGetDrawTypeToServer implements IMessage {
     
     public static class Handler implements IMessageHandler<PacketGetDrawTypeToServer, PacketGetDrawTypeToClient> {
         
+        // TODO: ERROR HANDLING
         public PacketGetDrawTypeToClient onMessage(PacketGetDrawTypeToServer message, MessageContext ctx) {
             ComputerCore computer = ComputerHandler.get().getComputer(message.computer, message.type);
             Debug.log("Computer {} is {}in pixel draw mode", message.computer, ((computer.screen.getIsPixelDrawMode()) ? "" : "not "));

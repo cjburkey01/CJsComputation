@@ -35,9 +35,9 @@ public class PacketGetScreenPixelsToClient implements IMessage {
     public void toBytes(ByteBuf buf) {
         for (int x = 0; x < screenPixels.length; x ++) {
             for (int y = 0; y < screenPixels[0].length; y ++) {
-                for (int c = 0; c < screenPixels[0][0].length; c ++) {
-                    buf.writeByte(screenPixels[x][y][c]);
-                }
+                buf.writeByte(screenPixels[x][y][0]);
+                buf.writeByte(screenPixels[x][y][1]);
+                buf.writeByte(screenPixels[x][y][2]);
             }
         }
     }

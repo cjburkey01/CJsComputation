@@ -48,7 +48,6 @@ public class BlockComputer extends Block implements ITileEntityProvider {
         ComputerPlaced computer = new ComputerPlaced(ComputerHandler.get(), tec.getWorld(), tec.getPos());
         ComputerHandler.get().addComputer(computer);
         tec.setComputer(computer);
-        Debug.log("Placed computer id {} at {}, {}, {} in dimension {}", tec.getId(), pos.getX(), pos.getY(), pos.getZ(), world.provider.getDimension());
     }
     
     public boolean onBlockActivated(World world, BlockPos pos, IBlockState state, EntityPlayer player, EnumHand hand, EnumFacing facing, float x, float y, float z) {
@@ -64,7 +63,6 @@ public class BlockComputer extends Block implements ITileEntityProvider {
             return true;
         }
         TileEntityComputer tec = (TileEntityComputer) te;
-        Debug.log("Right click on computer id {} at {}, {}, {} in dimension {}", tec.getId(), pos.getX(), pos.getY(), pos.getZ(), world.provider.getDimension());
         
         // The "x" coordinate is the computer id because there's not many other good ways to transmit data without packets. I'm too lazy.
         // TODO: Transmit computer id with a packet rather than the coordinates

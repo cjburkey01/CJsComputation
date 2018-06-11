@@ -1,6 +1,7 @@
 package com.cjburkey.cjscomputation.computer;
 
 import java.util.Arrays;
+import com.cjburkey.cjscomputation.HexUtil;
 
 public final class ComputerScreen {
     
@@ -18,33 +19,33 @@ public final class ComputerScreen {
     private char[][] characters = new char[SCREEN_CHARACTER_WIDTH][SCREEN_CHARACTER_HEIGHT];
     private byte[][][] characterColors = new byte[SCREEN_CHARACTER_WIDTH][SCREEN_CHARACTER_HEIGHT][3];
     private boolean pixelDrawMode;
+    public final ComputerCore computer;
     
-    public ComputerScreen() {
-        clearScreen();
+    public ComputerScreen(ComputerCore computer) {
+        this.computer = computer;
+        clearScreen(false); // Screen should not update when it's created, no player could be viewing it
     }
     
-    public void setPixel(short x, short y, byte r, byte g, byte b) {
+    public void setPixel(short x, short y, int c, boolean sendUpdate) {
+        setPixel(x, y, HexUtil.getPureColor(c), sendUpdate);
+    }
+    
+    public void setPixel(short x, short y, byte[] rgb, boolean sendUpdate) {
+        if (rgb.length != 3) {
+            return;
+        }
+        setPixel(x, y, rgb[0], rgb[1], rgb[2], sendUpdate);
+    }
+    
+    public void setPixel(short x, short y, byte r, byte g, byte b, boolean sendUpdate) {
         if (!getIsValidPixel(x, y)) {
             return;
         }
         pixels[x][y][0] = r;
         pixels[x][y][1] = g;
         pixels[x][y][2] = b;
-    }
-    
-    public void setPixel(short x, short y, byte[] rgb) {
-        if (rgb.length != 3) {
-            return;
-        }
-        setPixel(x, y, rgb[0], rgb[1], rgb[2]);
-    }
-    
-    // Clears the pixel buffer
-    public void clearPixels() {
-        for (short x = 0; x < pixels.length; x ++) {
-            for (short y = 0; y < pixels[0].length; y ++) {
-                setPixel(x, y, (byte) 0, (byte) 0, (byte) 0);
-            }
+        if (sendUpdate) {
+            updateScreen();
         }
     }
     
@@ -63,24 +64,25 @@ public final class ComputerScreen {
         return x >= 0 && y >= 0 && x < pixels.length && y < pixels[0].length;
     }
     
-    public void setCharacter(short x, short y, char character) {
+    // Clears the pixel buffer
+    public void clearPixels(boolean sendUpdate) {
+        for (short x = 0; x < pixels.length; x ++) {
+            for (short y = 0; y < pixels[0].length; y ++) {
+                setPixel(x, y, (byte) 0, (byte) 0, (byte) 0, false);
+            }
+        }
+        if (sendUpdate) {
+            updateScreen();
+        }
+    }
+    
+    public void setCharacter(short x, short y, char character, boolean sendUpdate) {
         if (!getIsValidCharacter(x, y)) {
             return;
         }
         characters[x][y] = character;
-    }
-    
-    // Clears the character buffers
-    public void clearCharacters() {
-        for (short x = 0; x < characters.length; x ++) {
-            for (short y = 0; y < characters[0].length; y ++) {
-                setCharacter(x, y, (char) 0);
-            }
-        }
-        for (short x = 0; x < characterColors.length; x ++) {
-            for (short y = 0; y < characterColors[0].length; y ++) {
-                setCharacterColor(x, y, (byte) 0, (byte) 0, (byte) 0);
-            }
+        if (sendUpdate) {
+            updateScreen();
         }
     }
     
@@ -91,20 +93,27 @@ public final class ComputerScreen {
         return characters[x][y];
     }
     
-    public void setCharacterColor(short x, short y, byte[] c) {
+    public void setCharacterColor(short x, short y, int c, boolean sendUpdate) {
+        setCharacterColor(x, y, HexUtil.getPureColor(c), sendUpdate);
+    }
+    
+    public void setCharacterColor(short x, short y, byte[] c, boolean sendUpdate) {
         if (c.length != 3) {
             return;
         }
-        setCharacterColor(x, y, c[0], c[1], c[2]);
+        setCharacterColor(x, y, c[0], c[1], c[2], sendUpdate);
     }
     
-    public void setCharacterColor(short x, short y, byte r, byte g, byte b) {
+    public void setCharacterColor(short x, short y, byte r, byte g, byte b, boolean sendUpdate) {
         if (!getIsValidCharacter(x, y)) {
             return;
         }
         characterColors[x][y][0] = r;
         characterColors[x][y][1] = g;
         characterColors[x][y][2] = b;
+        if (sendUpdate) {
+            updateScreen();
+        }
     }
     
     public byte[] getCharacterColor(short x, short y) {
@@ -118,19 +127,46 @@ public final class ComputerScreen {
         return x >= 0 && y >= 0 && x < characters.length && y < characters[0].length;
     }
     
+    // Clears the character buffers
+    public void clearCharacters(boolean sendUpdate) {
+        for (short x = 0; x < characters.length; x ++) {
+            for (short y = 0; y < characters[0].length; y ++) {
+                setCharacter(x, y, (char) 0, false);
+            }
+        }
+        for (short x = 0; x < characterColors.length; x ++) {
+            for (short y = 0; y < characterColors[0].length; y ++) {
+                setCharacterColor(x, y, (byte) 0, (byte) 0, (byte) 0, false);
+            }
+        }
+        if (sendUpdate) {
+            updateScreen();
+        }
+    }
+    
     // Clears the current buffer (will clear pixel buffer if it's the current one and the character buffers if they're the current one)
-    public void clearCurrent() {
+    public void clearCurrent(boolean sendUpdate) {
         if (pixelDrawMode) {
-            clearPixels();
+            clearPixels(false);
             return;
         }
-        clearCharacters();
+        clearCharacters(false);
+        if (sendUpdate) {
+            updateScreen();
+        }
     }
     
     // Clears both buffers
-    public void clearScreen() {
-        clearPixels();
-        clearCharacters();
+    public void clearScreen(boolean sendUpdate) {
+        clearPixels(false);
+        clearCharacters(false);
+        if (sendUpdate) {
+            updateScreen();
+        }
+    }
+    
+    public void updateScreen() {
+        computer.sendUpdateToViewers();
     }
     
     public void setPixelDrawMode() {
