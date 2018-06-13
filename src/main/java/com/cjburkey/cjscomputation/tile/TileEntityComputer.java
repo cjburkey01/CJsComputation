@@ -1,5 +1,6 @@
 package com.cjburkey.cjscomputation.tile;
 
+import com.cjburkey.cjscomputation.computer.ComputerHandler;
 import com.cjburkey.cjscomputation.computer.ComputerPlaced;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -14,6 +15,8 @@ public class TileEntityComputer extends TileEntity implements ITickable {
         if (getWorld().isRemote) {
             return;
         }
+        
+        ComputerHandler.get().getComputer(id, ComputerPlaced.class).update();
     }
     
     public void readFromNBT(NBTTagCompound compound) {
@@ -32,7 +35,7 @@ public class TileEntityComputer extends TileEntity implements ITickable {
         return compound;
     }
     
-    public int getId() {
+    public short getId() {
         return id;
     }
     

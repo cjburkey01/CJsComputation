@@ -43,20 +43,19 @@ public class GuiComputer extends GuiContainer {
         super.drawScreen(mouseX, mouseY, partialTicks); // Overriding this fixed a bug for some reason
     }
     
-    protected void keyTyped(char typedChar, int keyCode) throws IOException {
+    protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) {
             mc.player.closeScreen();
         }
         if (typedChar >= 0x80) {
             return; // Invalid character as far as we are concerned
         }
-        ModPackets.getNetwork().sendToServer(new PacketKeyTypedToServer(computer, type, typedChar, keyCode));
+        sendKeyTypedPacket(typedChar, keyCode);
     }
     
     public void initGui() {
         super.initGui();
-        
-        ModPackets.getNetwork().sendToServer(new PacketGetDrawTypeToServer(computer, type));
+        sendTypeRequestPacket();
     }
     
     protected void drawGuiContainerBackgroundLayer(float partialTicks, int mouseX, int mouseY) {
@@ -64,9 +63,9 @@ public class GuiComputer extends GuiContainer {
             hasSentInitialRequest = true;
             
             if (drawPixels) {
-                ModPackets.getNetwork().sendToServer(new PacketGetScreenPixelsToServer(computer, type));
+                sendPixelRequestPacket();
             } else {
-                ModPackets.getNetwork().sendToServer(new PacketGetScreenCharactersToServer(computer, type));
+                sendCharacterRequestPacket();
             }
         }
         
@@ -77,6 +76,9 @@ public class GuiComputer extends GuiContainer {
     
     protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
         super.drawGuiContainerForegroundLayer(mouseX, mouseY);
+        if (!hasInit || !hasSentInitialRequest) {
+            return;
+        }
         draw();
     }
     
@@ -120,8 +122,24 @@ public class GuiComputer extends GuiContainer {
         }
     }
     
+    private void sendTypeRequestPacket() {
+        ModPackets.getNetwork().sendToServer(new PacketGetDrawTypeToServer(computer, type));
+    }
+    
+    private void sendPixelRequestPacket() {
+        ModPackets.getNetwork().sendToServer(new PacketGetScreenPixelsToServer(computer, type));
+    }
+    
+    private void sendCharacterRequestPacket() {
+        ModPackets.getNetwork().sendToServer(new PacketGetScreenCharactersToServer(computer, type));
+    }
+    
+    private void sendKeyTypedPacket(char typedChar, int keyCode) {
+        ModPackets.getNetwork().sendToServer(new PacketKeyTypedToServer(computer, type, typedChar, keyCode));
+    }
+    
     public static boolean getIsOpen() {
-        return Minecraft.getMinecraft().currentScreen.equals(instance); // This is run on the client
+        return Minecraft.getMinecraft().currentScreen.equals(instance); // This can only be run on the client
     }
     
 }

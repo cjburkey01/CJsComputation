@@ -20,33 +20,34 @@ public final class ComputerScreen {
     private byte[][][] characterColors = new byte[SCREEN_CHARACTER_WIDTH][SCREEN_CHARACTER_HEIGHT][3];
     private boolean pixelDrawMode;
     public final ComputerCore computer;
+    private boolean canUpdate = false;
+    private boolean markedChanged = false;
     
     public ComputerScreen(ComputerCore computer) {
         this.computer = computer;
-        clearScreen(false); // Screen should not update when it's created, no player could be viewing it
+        clearScreen();
+        canUpdate = true;
     }
     
-    public void setPixel(short x, short y, int c, boolean sendUpdate) {
-        setPixel(x, y, HexUtil.getPureColor(c), sendUpdate);
+    public void setPixel(short x, short y, int c) {
+        setPixel(x, y, HexUtil.getPureColor(c));
     }
     
-    public void setPixel(short x, short y, byte[] rgb, boolean sendUpdate) {
+    public void setPixel(short x, short y, byte[] rgb) {
         if (rgb.length != 3) {
             return;
         }
-        setPixel(x, y, rgb[0], rgb[1], rgb[2], sendUpdate);
+        setPixel(x, y, rgb[0], rgb[1], rgb[2]);
     }
     
-    public void setPixel(short x, short y, byte r, byte g, byte b, boolean sendUpdate) {
+    public void setPixel(short x, short y, byte r, byte g, byte b) {
         if (!getIsValidPixel(x, y)) {
             return;
         }
         pixels[x][y][0] = r;
         pixels[x][y][1] = g;
         pixels[x][y][2] = b;
-        if (sendUpdate) {
-            updateScreen();
-        }
+        markedChanged = true;
     }
     
     public byte[] getPixel(short x, short y) {
@@ -65,25 +66,21 @@ public final class ComputerScreen {
     }
     
     // Clears the pixel buffer
-    public void clearPixels(boolean sendUpdate) {
+    public void clearPixels() {
         for (short x = 0; x < pixels.length; x ++) {
             for (short y = 0; y < pixels[0].length; y ++) {
-                setPixel(x, y, (byte) 0, (byte) 0, (byte) 0, false);
+                setPixel(x, y, (byte) 0, (byte) 0, (byte) 0);
             }
         }
-        if (sendUpdate) {
-            updateScreen();
-        }
+        markedChanged = true;
     }
     
-    public void setCharacter(short x, short y, char character, boolean sendUpdate) {
+    public void setCharacter(short x, short y, char character) {
         if (!getIsValidCharacter(x, y)) {
             return;
         }
         characters[x][y] = character;
-        if (sendUpdate) {
-            updateScreen();
-        }
+        markedChanged = true;
     }
     
     public char getCharacter(short x, short y) {
@@ -93,27 +90,25 @@ public final class ComputerScreen {
         return characters[x][y];
     }
     
-    public void setCharacterColor(short x, short y, int c, boolean sendUpdate) {
-        setCharacterColor(x, y, HexUtil.getPureColor(c), sendUpdate);
+    public void setCharacterColor(short x, short y, int c) {
+        setCharacterColor(x, y, HexUtil.getPureColor(c));
     }
     
-    public void setCharacterColor(short x, short y, byte[] c, boolean sendUpdate) {
+    public void setCharacterColor(short x, short y, byte[] c) {
         if (c.length != 3) {
             return;
         }
-        setCharacterColor(x, y, c[0], c[1], c[2], sendUpdate);
+        setCharacterColor(x, y, c[0], c[1], c[2]);
     }
     
-    public void setCharacterColor(short x, short y, byte r, byte g, byte b, boolean sendUpdate) {
+    public void setCharacterColor(short x, short y, byte r, byte g, byte b) {
         if (!getIsValidCharacter(x, y)) {
             return;
         }
         characterColors[x][y][0] = r;
         characterColors[x][y][1] = g;
         characterColors[x][y][2] = b;
-        if (sendUpdate) {
-            updateScreen();
-        }
+        markedChanged = true;
     }
     
     public byte[] getCharacterColor(short x, short y) {
@@ -128,45 +123,36 @@ public final class ComputerScreen {
     }
     
     // Clears the character buffers
-    public void clearCharacters(boolean sendUpdate) {
+    public void clearCharacters() {
         for (short x = 0; x < characters.length; x ++) {
             for (short y = 0; y < characters[0].length; y ++) {
-                setCharacter(x, y, (char) 0, false);
+                setCharacter(x, y, (char) 0);
             }
         }
         for (short x = 0; x < characterColors.length; x ++) {
             for (short y = 0; y < characterColors[0].length; y ++) {
-                setCharacterColor(x, y, (byte) 0, (byte) 0, (byte) 0, false);
+                setCharacterColor(x, y, (byte) 0, (byte) 0, (byte) 0);
             }
         }
-        if (sendUpdate) {
-            updateScreen();
-        }
+        markedChanged = true;
     }
     
     // Clears the current buffer (will clear pixel buffer if it's the current one and the character buffers if they're the current one)
-    public void clearCurrent(boolean sendUpdate) {
+    public void clearCurrent() {
         if (pixelDrawMode) {
-            clearPixels(false);
+            clearPixels();
             return;
         }
-        clearCharacters(false);
-        if (sendUpdate) {
-            updateScreen();
-        }
+        clearCharacters();
     }
     
     // Clears both buffers
-    public void clearScreen(boolean sendUpdate) {
-        clearPixels(false);
-        clearCharacters(false);
-        if (sendUpdate) {
-            updateScreen();
+    public void clearScreen() {
+        clearPixels();
+        clearCharacters();
+        if (canUpdate) {
+            markedChanged = true;
         }
-    }
-    
-    public void updateScreen() {
-        computer.sendUpdateToViewers();
     }
     
     public void setPixelDrawMode() {
@@ -191,6 +177,14 @@ public final class ComputerScreen {
     
     public byte[][][] getCharacterColors() {
         return characterColors;
+    }
+    
+    public boolean hasUpdated() {
+        return markedChanged;
+    }
+    
+    public void resetUpdateDetection() {
+        markedChanged = false;
     }
     
     public int hashCode() {

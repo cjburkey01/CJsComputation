@@ -1,13 +1,19 @@
 package com.cjburkey.cjscomputation.computer;
 
 import com.cjburkey.cjscomputation.Debug;
-import com.cjburkey.cjscomputation.process.IProcessHost;
+import com.cjburkey.cjscomputation.HexUtil;
+import com.cjburkey.cjscomputation.process.ProcessHost;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ITickable;
 
-public abstract class ComputerCore implements IProcessHost {
+public abstract class ComputerCore extends ProcessHost {
     
     private short id;
     public final ComputerScreen screen;
+    private short currentCursorX = 0;
+    private short currentCursorY = 0;
+    public int currentFillColor = 0xFFFFFF;
+    private boolean skip = false;
     
     public ComputerCore(ComputerHandler handler) {
         this ();
@@ -18,19 +24,18 @@ public abstract class ComputerCore implements IProcessHost {
     public ComputerCore() {
         id = -1;
         screen = new ComputerScreen(this);
-        
-        // TODO: DEBUG
-//        screen.setCharacterColor((short) 0, (short) 0, 0xFFFFFF, false);
-//        screen.setCharacterColor((short) 1, (short) 0, 0xFFFFFF, false);
-//        screen.setCharacterColor((short) 2, (short) 0, 0xFFFFFF, false);
-//        screen.setCharacter((short) 0, (short) 0, 'B', false);
-//        screen.setCharacter((short) 1, (short) 0, 'o', false);
-//        screen.setCharacter((short) 2, (short) 0, 'b', false);
-        screen.setPixelDrawMode();
-        screen.setPixel((short) 10, (short) 10, 0xFFFFFF, false);
-        screen.setPixel((short) 10, (short) 11, 0xFFFFFF, false);
-        screen.setPixel((short) 11, (short) 11, 0xFFFFFF, false);
-        screen.setPixel((short) 11, (short) 10, 0xFFFFFF, false);
+    }
+    
+    public final void update() {
+        int i = 0;
+        while (i < 500 && executeNext() && !skip) {  // Allows **up to** 500 processes
+            i ++;
+        }
+        skip = false;
+        if (screen.hasUpdated()) {
+            screen.resetUpdateDetection();
+            sendUpdateToViewers();
+        }
     }
     
     // TODO: SEND A VISUAL UPDATE PACKET TO ALL PLAYERS WHO SEE THE COMPUTER'S GUI WHEN IT CHANGES
@@ -61,10 +66,69 @@ public abstract class ComputerCore implements IProcessHost {
         return id;
     }
     
+    // Drawing utils
+    
+    public void setFillColor(byte r, byte g, byte b) {
+        setFillColor(HexUtil.getHexColorNoAlpha(r, g, b));
+    }
+    
+    public void setFillColor(int fillColor) {
+        currentFillColor = fillColor;
+    }
+    
+    public void fillCharacter(char character, boolean incrementCursor) {
+        screen.setCharacter(currentCursorX, currentCursorY, character);
+        screen.setCharacterColor(currentCursorX, currentCursorY, currentFillColor);
+        if (incrementCursor) {
+            currentCursorX ++;
+            if (currentCursorX >= ComputerScreen.SCREEN_CHARACTER_WIDTH) {
+                currentCursorX = 0;
+                currentCursorY ++;
+            }
+            setCursor(currentCursorX, currentCursorY);    // Wraps the cursor to the screen just in case
+        }
+    }
+    
+    public void fillString(String string, boolean incrementCursor) {
+        if (string == null || (string = string.trim()).isEmpty()) {
+            return;
+        }
+        short tmpCursorX = currentCursorX;
+        short tmpCursorY = currentCursorY;
+        char[] characters = string.toCharArray();
+        for (int i = 0; i < characters.length; i ++) {
+            fillCharacter(characters[i], true);
+        }
+        if (!incrementCursor) {
+            setCursor(tmpCursorX, tmpCursorY);
+        }
+    }
+    
+    public void fillPixel(short x, short y) {
+        screen.setPixel(x, y, currentFillColor);
+    }
+    
+    public void setCursor(short cursorX, short cursorY) {
+        currentCursorX = (short) ((cursorX) % ComputerScreen.SCREEN_CHARACTER_WIDTH);
+        currentCursorY = (short) ((cursorY) % ComputerScreen.SCREEN_CHARACTER_HEIGHT);
+    }
+    
+    public short getCursorX() {
+        return currentCursorX;
+    }
+    
+    public short getCursorY() {
+        return currentCursorY;
+    }
+    
     public int hashCode() {
         final int prime = 31;
         int result = 1;
+        result = prime * result + currentCursorX;
+        result = prime * result + currentCursorY;
+        result = prime * result + currentFillColor;
         result = prime * result + id;
+        result = prime * result + ((screen == null) ? 0 : screen.hashCode());
         return result;
     }
     
@@ -79,7 +143,23 @@ public abstract class ComputerCore implements IProcessHost {
             return false;
         }
         ComputerCore other = (ComputerCore) obj;
+        if (currentCursorX != other.currentCursorX) {
+            return false;
+        }
+        if (currentCursorY != other.currentCursorY) {
+            return false;
+        }
+        if (currentFillColor != other.currentFillColor) {
+            return false;
+        }
         if (id != other.id) {
+            return false;
+        }
+        if (screen == null) {
+            if (other.screen != null) {
+                return false;
+            }
+        } else if (!screen.equals(other.screen)) {
             return false;
         }
         return true;

@@ -1,5 +1,6 @@
 package com.cjburkey.cjscomputation.proxy;
 
+import com.cjburkey.cjscomputation.Debug;
 import net.minecraftforge.fml.common.event.FMLConstructionEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
