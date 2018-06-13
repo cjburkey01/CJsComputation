@@ -65,13 +65,6 @@ public class BlockComputer extends Block implements ITileEntityProvider {
         }
         TileEntityComputer tec = (TileEntityComputer) te;
         
-        // TODO: DEBUG CODE - prints "bob" to the screen at (1, 1)
-        ComputerPlaced computer = ComputerHandler.get().getComputer(tec.getId(), ComputerPlaced.class);
-        CommandLineParser.execute(computer, "native cur 1 1");      // "cur <x> <y>"        sets the cursor position to (x, y)
-        CommandLineParser.execute(computer, "native fch b true");   // "fch <char> <move>"  prints to the screen the character char and moves the cursor right by one (if move is true)
-        CommandLineParser.execute(computer, "native fch o true");
-        CommandLineParser.execute(computer, "native fch b true");
-        
         // The "x" coordinate is the computer id because there's not many other good ways to transmit data without packets. I'm too lazy.
         // TODO: Transmit computer id with a packet rather than the coordinates
         player.openGui(CJsComputation.getInstance(), 0, world, tec.getId(), 0, 0);

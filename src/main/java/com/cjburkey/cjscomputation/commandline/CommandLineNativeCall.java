@@ -18,8 +18,6 @@ public class CommandLineNativeCall extends CommandLineCall {
     }
     
     public void onCall(ComputerCore computer, String[] parameters) {
-        Debug.log("Native \"{}\" called", parameters[0]);
-        
         String name = parameters[0];
         NativeCall nativeCall = Natives.getNative(name);
         if (nativeCall == null) {

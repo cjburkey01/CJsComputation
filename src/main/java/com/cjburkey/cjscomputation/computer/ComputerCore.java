@@ -1,10 +1,18 @@
 package com.cjburkey.cjscomputation.computer;
 
+import org.lwjgl.input.Keyboard;
 import com.cjburkey.cjscomputation.Debug;
 import com.cjburkey.cjscomputation.HexUtil;
+import com.cjburkey.cjscomputation.commandline.CommandLineParser;
+import com.cjburkey.cjscomputation.packet.ModPackets;
+import com.cjburkey.cjscomputation.packet.PacketGetCursorPosToClient;
+import com.cjburkey.cjscomputation.packet.PacketGetScreenCharactersToClient;
+import com.cjburkey.cjscomputation.packet.PacketGetScreenPixelsToClient;
 import com.cjburkey.cjscomputation.process.ProcessHost;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ITickable;
+import net.minecraftforge.common.DimensionManager;
 
 public abstract class ComputerCore extends ProcessHost {
     
@@ -12,6 +20,7 @@ public abstract class ComputerCore extends ProcessHost {
     public final ComputerScreen screen;
     private short currentCursorX = 0;
     private short currentCursorY = 0;
+    private boolean cursorMoved = false;
     public int currentFillColor = 0xFFFFFF;
     private boolean skip = false;
     
@@ -32,18 +41,55 @@ public abstract class ComputerCore extends ProcessHost {
             i ++;
         }
         skip = false;
-        if (screen.hasUpdated()) {
+        if (screen.hasUpdated() || cursorMoved) {
             screen.resetUpdateDetection();
+            cursorMoved = false;
             sendUpdateToViewers();
         }
     }
     
     // TODO: SEND A VISUAL UPDATE PACKET TO ALL PLAYERS WHO SEE THE COMPUTER'S GUI WHEN IT CHANGES
     public final void sendUpdateToViewers() {
+        // TODO: ONLY SEND TO PLAYERS WITH GUI OPEN, NOT WHOLE WORLD
+        for (EntityPlayer player : DimensionManager.getWorld(0).playerEntities) {
+            if (screen.getIsPixelDrawMode()) {
+                ModPackets.getNetwork().sendTo(new PacketGetScreenPixelsToClient(screen.getPixelData()), (EntityPlayerMP) player);
+                continue;
+            }
+            ModPackets.getNetwork().sendTo(new PacketGetScreenCharactersToClient(screen.getCharacterData(), screen.getCharacterColors()), (EntityPlayerMP) player);
+            ModPackets.getNetwork().sendTo(new PacketGetCursorPosToClient(currentCursorX, currentCursorY), (EntityPlayerMP) player);
+        }
     }
     
+    short r = 255;
     public void onKeyType(char character, int key) {
-        Debug.log("Key pressed");
+        
+        // TODO: BASIC TEXT EDIT TEST PROGRAM USES ONLY 3 NATIVE COMMANDS
+        //      "cur <x> <y>"       sets the cursor to (x, y)
+        //      "sfl <r> <g> <b>"   sets the active color to r,g,b
+        //      "fch <c> <m>"       sets the cursor to the character c, and moves the cursor right if m is true
+        if (key == Keyboard.KEY_RIGHT) {
+            CommandLineParser.execute(this, "native cur " + (currentCursorX + 1) + " " + currentCursorY);
+            return;
+        }
+        if (key == Keyboard.KEY_LEFT) {
+            CommandLineParser.execute(this, "native cur " + (currentCursorX - 1) + " " + currentCursorY);
+            return;
+        }
+        if (key == Keyboard.KEY_UP) {
+            CommandLineParser.execute(this, "native cur " + currentCursorX + " " + (currentCursorY - 1));
+            return;
+        }
+        if (key == Keyboard.KEY_DOWN) {
+            CommandLineParser.execute(this, "native cur " + currentCursorX + " " + (currentCursorY + 1));
+            return;
+        }
+        CommandLineParser.execute(this, "native sfl " + r + " 255 255");
+        CommandLineParser.execute(this, "native fch " + ((character != ' ') ? character : "\\s") + " true");
+        r -= 10;
+        if (r < 0) {
+            r = (short) (255 + r);
+        }
     }
     
     public final void _save(NBTTagCompound nbt) {
@@ -81,9 +127,12 @@ public abstract class ComputerCore extends ProcessHost {
         screen.setCharacterColor(currentCursorX, currentCursorY, currentFillColor);
         if (incrementCursor) {
             currentCursorX ++;
-            if (currentCursorX >= ComputerScreen.SCREEN_CHARACTER_WIDTH) {
+            if (currentCursorX > ComputerScreen.SCREEN_CHARACTER_WIDTH - 1) {
                 currentCursorX = 0;
                 currentCursorY ++;
+                if (currentCursorY > ComputerScreen.SCREEN_CHARACTER_HEIGHT - 1) {
+                    currentCursorY = 0;
+                }
             }
             setCursor(currentCursorX, currentCursorY);    // Wraps the cursor to the screen just in case
         }
@@ -109,8 +158,10 @@ public abstract class ComputerCore extends ProcessHost {
     }
     
     public void setCursor(short cursorX, short cursorY) {
-        currentCursorX = (short) ((cursorX) % ComputerScreen.SCREEN_CHARACTER_WIDTH);
-        currentCursorY = (short) ((cursorY) % ComputerScreen.SCREEN_CHARACTER_HEIGHT);
+        currentCursorX = (short) Math.min(Math.max(0, cursorX), ComputerScreen.SCREEN_CHARACTER_WIDTH - 1);
+        currentCursorY = (short) Math.min(Math.max(0, cursorY), ComputerScreen.SCREEN_CHARACTER_HEIGHT - 1);
+        Debug.log(currentCursorX + " " + currentCursorY);
+        cursorMoved = true;
     }
     
     public short getCursorX() {

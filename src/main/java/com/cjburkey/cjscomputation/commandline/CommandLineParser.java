@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 import com.cjburkey.cjscomputation.Debug;
 import com.cjburkey.cjscomputation.process.ProcessCommandLineCall;
 import com.cjburkey.cjscomputation.process.ProcessHost;
@@ -67,15 +68,17 @@ public class CommandLineParser {
         }
         List<ParsedResults> tokens = new ArrayList<>();
         String[] pureTokens = input.split("\\s");
+        int i = 0;
         for (String pureToken : pureTokens) {
             if (pureToken == null || (pureToken = pureToken.trim()).isEmpty()) {
                 continue;
             }
-            if (!pureToken.matches("[A-Za-z0-9_]+")) {  // Require a 1+ character sequence of alpha-numeric-underscore characters
-                tokens.add(new ParsedResults(false, pureToken));   // Fail to parse
+            if (i < 1 && !pureToken.matches("[A-Za-z0-9_]+")) {     // Require a 1+ character sequence of alpha-numeric-underscore characters as a command
+                tokens.add(new ParsedResults(false, pureToken));    // Fail to parse
                 break;  // Break because error was already found
             }
-            tokens.add(new ParsedResults(true, pureToken));
+            tokens.add(new ParsedResults(true, pureToken.replaceAll(Pattern.quote("\\s"), " ")));   // Make '\s' a space character
+            i ++;
         }
         return tokens.toArray(new ParsedResults[0]);
     }

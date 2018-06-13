@@ -1,11 +1,11 @@
 package com.cjburkey.cjscomputation.gui;
 
-import java.io.IOException;
 import com.cjburkey.cjscomputation.HexUtil;
 import com.cjburkey.cjscomputation.ModInfo;
 import com.cjburkey.cjscomputation.computer.ComputerCore;
 import com.cjburkey.cjscomputation.computer.ComputerScreen;
 import com.cjburkey.cjscomputation.packet.ModPackets;
+import com.cjburkey.cjscomputation.packet.PacketGetCursorPosToServer;
 import com.cjburkey.cjscomputation.packet.PacketGetDrawTypeToServer;
 import com.cjburkey.cjscomputation.packet.PacketGetScreenCharactersToServer;
 import com.cjburkey.cjscomputation.packet.PacketGetScreenPixelsToServer;
@@ -20,11 +20,13 @@ public class GuiComputer extends GuiContainer {
     private short computer = -1;
     private Class<? extends ComputerCore> type;
     public static boolean hasInit = false;
-    private static boolean hasSentInitialRequest = false;
+    private boolean hasSentInitialRequest = false;
     public static boolean drawPixels = false;
     public static byte[][][] pixelData = new byte[0][0][0];
     public static char[][] characterData = new char[0][0];
     public static byte[][][] characterColorData = new byte[0][0][0];
+    public static short cursorX = 0;
+    public static short cursorY = 0;
     
     private static GuiComputer instance;
     
@@ -34,7 +36,7 @@ public class GuiComputer extends GuiContainer {
         computer = computerId;
         this.type = type;
         xSize = 249;
-        ySize = 209;
+        ySize = 211;
         
         instance = this;
     }
@@ -46,9 +48,6 @@ public class GuiComputer extends GuiContainer {
     protected void keyTyped(char typedChar, int keyCode) {
         if (keyCode == 1) {
             mc.player.closeScreen();
-        }
-        if (typedChar >= 0x80) {
-            return; // Invalid character as far as we are concerned
         }
         sendKeyTypedPacket(typedChar, keyCode);
     }
@@ -110,16 +109,26 @@ public class GuiComputer extends GuiContainer {
             return;
         }
         int color = -1;
-        int padding = ComputerScreen.CHARACTER_PADDING;
-        for (int x = 0; x < characterData.length; x ++) {
-            for (int y = 0; y < characterData[0].length; y ++) {
-                color = HexUtil.getHexNoAlpha(characterColorData, x, y);
+        for (short x = 0; x < characterData.length; x ++) {
+            for (short y = 0; y < characterData[0].length; y ++) {
+                if (x == cursorX && y == cursorY) {
+                    drawCharacter('#', x, y, 0xFFFFFF);
+                    continue;
+                }
                 char c = characterData[x][y];
-                if (c <= 0x80) {
-                    drawString(fontRenderer, c + "", (x * (ComputerScreen.CHARACTER_WIDTH + padding)) + 4 + padding, (y * (ComputerScreen.CHARACTER_HEIGHT + padding)) + 4 + padding, color);
+                if (c >= 0x20 && c < 0x7F) {    // Standard text ascii
+                    color = HexUtil.getHexNoAlpha(characterColorData, x, y);
+                    drawCharacter(c, x, y, color);
                 }
             }
         }
+    }
+    
+    private void drawCharacter(char character, short x, short y, int color) {
+        int w = fontRenderer.getCharWidth(character);
+        int xp = (x * (ComputerScreen.CHARACTER_WIDTH + ComputerScreen.CHARACTER_PADDING)) + 4 + ComputerScreen.CHARACTER_PADDING + ((ComputerScreen.CHARACTER_WIDTH - w) / 2);
+        int yp = (y * (ComputerScreen.CHARACTER_HEIGHT + ComputerScreen.CHARACTER_PADDING)) + 4 + ComputerScreen.CHARACTER_PADDING;
+        drawString(fontRenderer, character + "", xp, yp, color);
     }
     
     private void sendTypeRequestPacket() {
@@ -132,6 +141,7 @@ public class GuiComputer extends GuiContainer {
     
     private void sendCharacterRequestPacket() {
         ModPackets.getNetwork().sendToServer(new PacketGetScreenCharactersToServer(computer, type));
+        ModPackets.getNetwork().sendToServer(new PacketGetCursorPosToServer(computer, type));
     }
     
     private void sendKeyTypedPacket(char typedChar, int keyCode) {

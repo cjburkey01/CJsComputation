@@ -15,7 +15,6 @@ public class ProcessCommandLineCall extends Process {
     }
     
     public boolean onCall(ComputerCore host) {
-        Debug.log("Command \"{}\" called", call.getName());
         call.onCall(host, arguments);
         return true;
     }

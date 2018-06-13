@@ -5,12 +5,12 @@ import com.cjburkey.cjscomputation.HexUtil;
 
 public final class ComputerScreen {
     
-    public static final int CHARACTER_WIDTH = 5;
-    public static final int CHARACTER_HEIGHT = 7;
-    public static final int CHARACTER_PADDING = 1;
+    public static final short CHARACTER_WIDTH = 5;
+    public static final short CHARACTER_HEIGHT = 7;
+    public static final short CHARACTER_PADDING = 1;
     
-    public static final int SCREEN_CHARACTER_WIDTH = 40;
-    public static final int SCREEN_CHARACTER_HEIGHT = 25;
+    public static final short SCREEN_CHARACTER_WIDTH = 40;
+    public static final short SCREEN_CHARACTER_HEIGHT = 25;
     
     public static final int SCREEN_PIXEL_WIDTH = (SCREEN_CHARACTER_WIDTH * (CHARACTER_WIDTH + CHARACTER_PADDING)) + CHARACTER_PADDING;
     public static final int SCREEN_PIXEL_HEIGHT = (SCREEN_CHARACTER_HEIGHT * (CHARACTER_HEIGHT + CHARACTER_PADDING)) + CHARACTER_PADDING;

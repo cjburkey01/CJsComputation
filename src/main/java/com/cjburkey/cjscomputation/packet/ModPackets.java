@@ -23,6 +23,9 @@ public class ModPackets {
         network.registerMessage(PacketGetScreenPixelsToClient.Handler.class, PacketGetScreenPixelsToClient.class, i ++, Side.CLIENT);
         
         network.registerMessage(PacketKeyTypedToServer.Handler.class, PacketKeyTypedToServer.class, i ++, Side.SERVER);
+        
+        network.registerMessage(PacketGetCursorPosToServer.Handler.class, PacketGetCursorPosToServer.class, i ++, Side.SERVER);
+        network.registerMessage(PacketGetCursorPosToClient.Handler.class, PacketGetCursorPosToClient.class, i ++, Side.CLIENT);
     }
     
     public static SimpleNetworkWrapper getNetwork() {
